@@ -1,5 +1,6 @@
 #!/bin/bash
-# Creates a new ahab script in ~/bin.
+# Creates a new ahab script in ~/bin and hardlinks it into the current
+# directory.
 
 new_script() {
 cat <<'EOF'
@@ -7,11 +8,26 @@ cat <<'EOF'
 chomp($self{dockerfile} = <<'_');
 FROM ubuntu:latest
 RUN apt-get -qqy update
-RUN apt-get -qqy install cowsay
-RUN ln -s /usr/games/cowsay /usr/bin/
+RUN apt-get -qqy install x11-utils
 _
 chomp($self{run} = <<'_');
-docker run --rm $image cowsay "TODO: find that whale"
+#!/bin/bash
+# This script runs the docker image built by the dockerfile.
+# The image name is passed in as the environment variable $image.
+
+# Generates docker run options to connect the container's X11 display to the
+# host using the X11 socket.
+x11_opts() {
+  if [[ -n "$DISPLAY" ]]; then
+    XAUTH=/tmp/.docker.xauth${DISPLAY//:/.}
+    xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
+    printf %s "-v /tmp/.X11-unix:/tmp/.X11-unix \
+               -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH \
+               -e DISPLAY=$DISPLAY"
+  fi
+}
+
+docker run $(x11_opts) --rm -it $image xmessage "TODO: find that whale"
 _
 eval($self{boot} = <<'_');
 use strict;
@@ -66,13 +82,19 @@ new)
     echo "~/bin/$2 already exists; not overwriting it"
     exit 1
   fi
+  if [[ -e $2 ]]; then
+    echo "$2 already exists; not overwriting it"
+    exit 1
+  fi
   new_script > ~/bin/$2
   chmod +x ~/bin/$2
-  echo "created ~/bin/$2"
-  echo "run '$2 --ahab-dockerfile' to edit the dockerfile"
-  echo "run '$2 --ahab-run' to edit the runtime script"
-  echo "run '$2 --ahab-build' to build the untagged docker image"
-  echo "run '$2 <anything else>' to launch the application in a transient container"
+  ln ~/bin/$2 $2
+  echo "created ~/bin/$2 (hardlinked to ./$2)"
+  echo "  - '$2 --ahab-dockerfile' to edit the dockerfile"
+  echo "  - '$2 --ahab-run' to edit the runtime script"
+  echo "  - '$2 --ahab-build' to build the untagged docker image"
+  echo "  - '$2 <anything else>' to launch the application in a transient container"
+  echo
   ;;
 
 *)
