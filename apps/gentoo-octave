@@ -10,19 +10,8 @@ chomp($self{run} = <<'__ahab');
 # This script runs the docker image built by the dockerfile.
 # The image name is passed in as the environment variable $image.
 
-# Generates docker run options to connect the container's X11 display to the
-# host using the X11 socket.
-x11_opts() {
-  if [[ -n "$DISPLAY" ]]; then
-    XAUTH=/tmp/.docker.xauth${DISPLAY//:/.}
-    xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
-    printf %s "-v /tmp/.X11-unix:/tmp/.X11-unix \
-               -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH \
-               -e DISPLAY=$DISPLAY"
-  fi
-}
+docker run --rm -it $image octave "$@"
 
-docker run $(x11_opts) --rm -it $image xmessage "TODO: find that whale"
 __ahab
 eval($self{boot} = <<'_');
 use strict;
