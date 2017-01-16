@@ -68,6 +68,11 @@ new)
   fi
   new_script > ~/bin/$2
   chmod +x ~/bin/$2
+  echo "created ~/bin/$2"
+  echo "run '$2 --ahab-dockerfile' to edit the dockerfile"
+  echo "run '$2 --ahab-run' to edit the runtime script"
+  echo "run '$2 --ahab-build' to build the untagged docker image"
+  echo "run '$2 <anything else>' to launch the application in a transient container"
   ;;
 
 *)
