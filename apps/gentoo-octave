@@ -1,16 +1,11 @@
-#!/bin/bash
-# Creates a new ahab script in ~/bin and hardlinks it into the current
-# directory.
-
-new_script() {
-cat <<'EOF'
 #!/usr/bin/env perl
-chomp($self{dockerfile} = <<'_');
-FROM ubuntu:latest
-RUN apt-get -qqy update
-RUN apt-get -qqy install x11-utils
-_
-chomp($self{run} = <<'_');
+chomp($self{dockerfile} = <<'__ahab');
+FROM gentoo/stage3-amd64-nomultilib
+RUN emerge --sync
+RUN emerge octave
+
+__ahab
+chomp($self{run} = <<'__ahab');
 #!/bin/bash
 # This script runs the docker image built by the dockerfile.
 # The image name is passed in as the environment variable $image.
@@ -28,7 +23,7 @@ x11_opts() {
 }
 
 docker run $(x11_opts) --rm -it $image xmessage "TODO: find that whale"
-_
+__ahab
 eval($self{boot} = <<'_');
 use strict;
 use File::Temp qw/tempfile/;
@@ -72,33 +67,4 @@ exit edit_self 'run'               if $ARGV[0] eq '--ahab-run';
 exit docker_build @ARGV[1..$#ARGV] if $ARGV[0] eq '--ahab-build';
 exit docker_run @ARGV;
 _
-die $@;
-EOF
-}
-
-case $1 in
-new)
-  if [[ -e ~/bin/$2 ]]; then
-    echo "~/bin/$2 already exists; not overwriting it"
-    exit 1
-  fi
-  if [[ -e $2 ]]; then
-    echo "$2 already exists; not overwriting it"
-    exit 1
-  fi
-  new_script > ~/bin/$2
-  chmod +x ~/bin/$2
-  ln ~/bin/$2 $2
-  echo "created ~/bin/$2 (hardlinked to ./$2)"
-  echo "  - '$2 --ahab-dockerfile' to edit the dockerfile"
-  echo "  - '$2 --ahab-run' to edit the runtime script"
-  echo "  - '$2 --ahab-build' to build the untagged docker image"
-  echo "  - '$2 <anything else>' to launch the application in a transient container"
-  echo
-  ;;
-
-*)
-  echo "usage: ahab new <name>"
-  exit 1
-  ;;
-esac
+die $@
