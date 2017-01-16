@@ -4,7 +4,9 @@ FROM ubuntu:latest
 RUN apt-get -qqy update
 RUN apt-get -qqy install git
 RUN git clone git://github.com/spencertipping/dotfiles /root/.files
+RUN git clone git://github.com/spencertipping/dotbash /root/.bash
 RUN /root/.files/setup yes-really || true
+RUN /bin/bash /root/.bash/init
 
 __ahab
 chomp($self{run} = <<'__ahab');

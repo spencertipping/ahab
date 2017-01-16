@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
 chomp($self{dockerfile} = <<'__ahab');
-FROM gentoo
-RUN emerge octave
+FROM ubuntu:latest
+RUN apt-get -qqy update
+RUN apt-get -qqy install baobab
 
 __ahab
 chomp($self{run} = <<'__ahab');
@@ -9,7 +10,19 @@ chomp($self{run} = <<'__ahab');
 # This script runs the docker image built by the dockerfile.
 # The image name is passed in as the environment variable $image.
 
-docker run --rm -it $image octave "$@"
+# Generates docker run options to connect the container's X11 display to the
+# host using the X11 socket.
+x11_opts() {
+  if [[ -n "$DISPLAY" ]]; then
+    XAUTH=/tmp/.docker.xauth${DISPLAY//:/.}
+    xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
+    printf %s "-v /tmp/.X11-unix:/tmp/.X11-unix \
+               -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH \
+               -e DISPLAY=$DISPLAY"
+  fi
+}
+
+docker run $(x11_opts) -v $1:/data --rm -it $image baobab /data
 
 __ahab
 eval($self{boot} = <<'_');

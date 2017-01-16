@@ -1,15 +1,15 @@
 #!/usr/bin/env perl
 chomp($self{dockerfile} = <<'__ahab');
-FROM gentoo
-RUN emerge octave
+FROM gentoo/stage3-amd64-nomultilib
+RUN emerge --sync
+RUN emerge world
 
 __ahab
 chomp($self{run} = <<'__ahab');
 #!/bin/bash
 # This script runs the docker image built by the dockerfile.
 # The image name is passed in as the environment variable $image.
-
-docker run --rm -it $image octave "$@"
+docker tag $image gentoo
 
 __ahab
 eval($self{boot} = <<'_');
