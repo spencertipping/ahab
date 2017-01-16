@@ -2,6 +2,7 @@
 chomp($self{dockerfile} = <<'_');
 FROM gentoo
 RUN emerge world
+RUN emerge --depclean
 _
 chomp($self{run} = <<'_');
 #!/bin/bash
