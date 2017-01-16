@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 chomp($self{dockerfile} = <<'__ahab');
-FROM gentoo
+FROM gentoo-local
 RUN emerge octave
 
 __ahab
