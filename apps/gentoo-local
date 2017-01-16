@@ -1,16 +1,14 @@
 #!/usr/bin/env perl
-chomp($self{dockerfile} = <<'__ahab');
-FROM gentoo/stage3-amd64-nomultilib
-RUN emerge --sync
-
-__ahab
-chomp($self{run} = <<'__ahab');
+chomp($self{dockerfile} = <<'_');
+FROM gentoo
+RUN emerge world
+_
+chomp($self{run} = <<'_');
 #!/bin/bash
 # This script runs the docker image built by the dockerfile.
 # The image name is passed in as the environment variable $image.
-docker tag $image gentoo
-
-__ahab
+docker tag $image gentoo-local
+_
 eval($self{boot} = <<'_');
 use strict;
 use File::Temp qw/tempfile/;
@@ -54,4 +52,4 @@ exit edit_self 'run'               if $ARGV[0] eq '--ahab-run';
 exit docker_build @ARGV[1..$#ARGV] if $ARGV[0] eq '--ahab-build';
 exit docker_run @ARGV;
 _
-die $@
+die $@;
