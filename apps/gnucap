@@ -1,0 +1,57 @@
+#!/usr/bin/env perl
+chomp($self{dockerfile} = <<'_');
+FROM gentoo-local
+RUN emerge gnucap
+VOLUME /data
+WORKDIR /data
+_
+chomp($self{run} = <<'_');
+#!/bin/bash
+# This script runs the docker image built by the dockerfile.
+# The image name is passed in as the environment variable $image.
+docker run --rm -V $PWD:/data -it $image gnucap "$@"
+_
+eval($self{boot} = <<'_');
+use strict;
+use File::Temp qw/tempfile/;
+
+our %self;
+chomp $self{boot};
+sub attribute_state {"chomp(\$self{$_[0]} = <<'__ahab');\n$self{$_[0]}\n__ahab"}
+sub current_state {
+  join "\n", "#!/usr/bin/env perl",
+             map(attribute_state($_), qw/dockerfile run/),
+             "eval(\$self{boot} = <<'_');\n$self{boot}\n_",
+             'die $@';
+}
+
+sub rf($) {open my $fh, '<', $_[0] or die $!; join '', <$fh>}
+sub wf($@) {open my $fh, '>', shift or die $!; print $fh join "\n", @_}
+
+sub edit_self($) {
+  my ($attr) = @_;
+  my (undef, $f) = tempfile;
+  wf $f, $self{$attr};
+  system $ENV{VISUAL} || $ENV{EDITOR}, $f;
+  $self{$attr} = rf $f;
+  unlink $f;
+  wf $0, current_state;
+  0;
+}
+
+sub docker_build {
+  open my $fh, "| docker build @_ -" or die $!;
+  print $fh $self{dockerfile};
+}
+
+sub docker_run {
+  $ENV{image} = `$0 --ahab-build -q`;
+  exec '/bin/bash', '-c', $self{run}, $0, @_ or die $!;
+}
+
+exit edit_self 'dockerfile'        if $ARGV[0] eq '--ahab-dockerfile';
+exit edit_self 'run'               if $ARGV[0] eq '--ahab-run';
+exit docker_build @ARGV[1..$#ARGV] if $ARGV[0] eq '--ahab-build';
+exit docker_run @ARGV;
+_
+die $@;
